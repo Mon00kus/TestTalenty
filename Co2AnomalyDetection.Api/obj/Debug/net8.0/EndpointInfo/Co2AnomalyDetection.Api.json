@@ -5,20 +5,17 @@
     "version": "1.0"
   },
   "paths": {
-    "/api/emissions/analyze": {
+    "/api/emissions/analyze-advanced": {
       "post": {
         "tags": [
           "Co2AnomalyDetection.Api"
         ],
-        "operationId": "AnalyzeEmissions",
+        "operationId": "AnalyzeEmissionsAdvanced",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/EmissionRecord"
-                }
+                "$ref": "#/components/schemas/AnalysisRequest"
               }
             }
           },
@@ -34,6 +31,29 @@
   },
   "components": {
     "schemas": {
+      "AnalysisRequest": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmissionRecord"
+            },
+            "nullable": true
+          },
+          "operationalContexts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperationalContext"
+            },
+            "nullable": true
+          },
+          "enableAiAssistance": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "EmissionRecord": {
         "type": "object",
         "properties": {
@@ -54,6 +74,28 @@
             "format": "double"
           },
           "co2Kg": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OperationalContext": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "nullable": true
+          },
+          "month": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "expectedEnergyMultiplier": {
             "type": "number",
             "format": "double"
           }

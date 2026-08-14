@@ -35,3 +35,4 @@ D:\TestTalenty\Co2AnomalyDetection.Api\obj\Debug\net8.0\Co2AnomalyDetection.Api.
 D:\TestTalenty\Co2AnomalyDetection.Api\obj\Debug\net8.0\Co2AnomalyDetection.Api.genruntimeconfig.cache
 D:\TestTalenty\Co2AnomalyDetection.Api\obj\Debug\net8.0\ref\Co2AnomalyDetection.Api.dll
 D:\TestTalenty\Co2AnomalyDetection.Api\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
+D:\TestTalenty\Co2AnomalyDetection.Api\obj\Debug\net8.0\Co2AnomalyDetection.Api.sourcelink.json

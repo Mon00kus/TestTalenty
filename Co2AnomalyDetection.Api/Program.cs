@@ -1,14 +1,16 @@
-﻿var builder = WebApplication.CreateBuilder(args);
+﻿using System.Text.Json;
 
-// Configurar System.Text.Json para hacer la API más tolerante (permite comas finales y case-insensitivity)
+var builder = WebApplication.CreateBuilder(args);
+
+// Configuración tolerante de JSON
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.AllowTrailingCommas = true;
     options.SerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
-// Registrar el servicio de detección de anomalías en el contenedor de dependencias (DI)
-builder.Services.AddSingleton<ICo2AnomalyDetectorService, Co2AnomalyDetectorService>();
+// Registrar servicios en el contenedor de dependencias
+builder.Services.AddSingleton<IEmissionAnalysisEngine, EmissionAnalysisEngine>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -23,24 +25,24 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Endpoint principal que recibe la lista de registros y aplica la heurística
-app.MapPost("/api/emissions/analyze", (List<EmissionRecord> records, ICo2AnomalyDetectorService detectorService) =>
+// Endpoint avanzado de análisis que soporta el Escenario A (contexto operativo) y Escenario B (opción de IA)
+app.MapPost("/api/emissions/analyze-advanced", (AnalysisRequest request, IEmissionAnalysisEngine analysisEngine) =>
 {
-    if (records == null || records.Count == 0)
+    if (request.Records == null || request.Records.Count == 0)
     {
-        return Results.BadRequest(new { message = "El listado de registros está vacío o es inválido." });
+        return Results.BadRequest(new { message = "No se proporcionaron registros para analizar." });
     }
 
-    var results = detectorService.AnalyzeBatch(records);
+    var results = analysisEngine.EvaluateBatch(request.Records, request.OperationalContexts, request.EnableAiAssistance);
     return Results.Ok(results);
 })
-.WithName("AnalyzeEmissions")
+.WithName("AnalyzeEmissionsAdvanced")
 .WithOpenApi();
 
 app.Run();
 
 // ==========================================
-// 1. MODELOS DE DATOS (Records en .NET 8)
+// 1. MODELOS DE DATOS Y CONTRATOS
 // ==========================================
 
 public record EmissionRecord(
@@ -51,101 +53,177 @@ public record EmissionRecord(
     double Co2Kg
 );
 
+// Escenario A: Contexto de negocio / operativo por sede y mes
+public record OperationalContext(
+    string Site,
+    string Month,
+    string Reason, // Ej. "Ampliación de fábrica y nueva línea de producción"
+    double ExpectedEnergyMultiplier // Ej. 2.0 (permite doblar el umbral esperado)
+);
+
+public record AnalysisRequest(
+    List<EmissionRecord> Records,
+    List<OperationalContext>? OperationalContexts,
+    bool EnableAiAssistance // Escenario B: Activar validación por LLM en casos dudosos
+);
+
 public record AnomalyResult(
     int Id,
     bool RequiresReview,
     string Reason,
-    string Severity
+    string Severity,
+    string EvaluatedBy // "Code-Heuristics" o "LLM-Assisted"
 );
 
 // ==========================================
-// 2. CONTRATO DEL SERVICIO
+// 2. INTERFAZ DEL MOTOR DE ANÁLISIS
 // ==========================================
 
-public interface ICo2AnomalyDetectorService
+public interface IEmissionAnalysisEngine
 {
-    List<AnomalyResult> AnalyzeBatch(List<EmissionRecord> records);
+    List<AnomalyResult> EvaluateBatch(
+        List<EmissionRecord> records,
+        List<OperationalContext>? contexts,
+        bool useAiAssistance);
 }
 
 // ==========================================
-// 3. IMPLEMENTACIÓN DE LA LÓGICA HEURÍSTICA
+// 3. IMPLEMENTACIÓN DE LA HEURÍSTICA + ESCENARIOS A y B
 // ==========================================
 
-public class Co2AnomalyDetectorService : ICo2AnomalyDetectorService
+public class EmissionAnalysisEngine : IEmissionAnalysisEngine
 {
-    public List<AnomalyResult> AnalyzeBatch(List<EmissionRecord> records)
+    public List<AnomalyResult> EvaluateBatch(
+        List<EmissionRecord> records,
+        List<OperationalContext>? contexts,
+        bool useAiAssistance)
     {
         var results = new List<AnomalyResult>();
+        contexts ??= new List<OperationalContext>();
 
-        // Agrupamos por sede para poder analizar el comportamiento histórico de cada una
         var recordsBySite = records.GroupBy(r => r.Site).ToList();
 
         foreach (var siteGroup in recordsBySite)
         {
             var siteRecords = siteGroup.OrderBy(r => r.Month).ToList();
-
-            // Calculamos estadísticas básicas de la sede (si hay suficientes datos)
             double avgEnergy = siteRecords.Where(r => r.EnergyKwh >= 0).Select(r => r.EnergyKwh).DefaultIfEmpty(0).Average();
 
             foreach (var record in siteRecords)
             {
-                // REGLA 1: Valores Imposibles / Inválidos (ej. Negativos)
+                // ----------------------------------------------------
+                // PASO 1: HEURÍSTICA DETERMINISTA (Código puro en .NET)
+                // ----------------------------------------------------
+
+                // A. Valores imposibles (Negativos) -> Severidad Alta, innegociable por código
                 if (record.EnergyKwh < 0 || record.Co2Kg < 0)
                 {
                     results.Add(new AnomalyResult(
                         record.Id,
                         RequiresReview: true,
-                        Reason: "Valores físicos imposibles o negativos detectados (Energía o CO₂ < 0).",
-                        Severity: "High"
+                        Reason: "Valores físicos imposibles detectados (Energía o CO₂ con valores negativos).",
+                        Severity: "High",
+                        EvaluatedBy: "Code-Heuristics"
                     ));
                     continue;
                 }
 
-                // REGLA 2: Cambios Anómalos en el Consumo (Spikes temporales)
-                // Si el consumo excede más del doble (> 200%) de la media histórica de la sede
-                if (avgEnergy > 0 && record.EnergyKwh > (avgEnergy * 2.5))
+                // B. Verificar Escenario A: Contexto de negocio u Operativo previo
+                var activeContext = contexts.FirstOrDefault(c =>
+                    c.Site.Equals(record.Site, StringComparison.OrdinalIgnoreCase) &&
+                    c.Month.Equals(record.Month, StringComparison.OrdinalIgnoreCase));
+
+                // Definir umbral dinámico basado en contexto operativo (Escenario A)
+                double dynamicThresholdMultiplier = activeContext != null ? activeContext.ExpectedEnergyMultiplier : 2.5;
+
+                // C. Detección de picos de consumo ajustada al contexto
+                if (avgEnergy > 0 && record.EnergyKwh > (avgEnergy * dynamicThresholdMultiplier))
                 {
-                    results.Add(new AnomalyResult(
-                        record.Id,
-                        RequiresReview: true,
-                        Reason: $"El consumo energético ({record.EnergyKwh} kWh) excede significativamente el comportamiento histórico promedio de la sede ({avgEnergy:F0} kWh).",
-                        Severity: "High"
-                    ));
-                    continue;
+                    if (activeContext != null)
+                    {
+                        // Escenario A resuelto: El pico existe pero está justificado por negocio
+                        results.Add(new AnomalyResult(
+                            record.Id,
+                            RequiresReview: false, // Se descarta la alerta severa gracias al contexto
+                            Reason: $"Pico de consumo validado por contexto operativo: {activeContext.Reason}",
+                            Severity: "Low",
+                            EvaluatedBy: "Code-Heuristics-Contextual"
+                        ));
+                        continue;
+                    }
+                    else
+                    {
+                        // Sin contexto, pasa a revisión o se evalúa con IA (Escenario B si aplica)
+                        if (useAiAssistance)
+                        {
+                            // ----------------------------------------------------
+                            // PASO 2: ESCENARIO B (Uso controlado de LLM)
+                            // ----------------------------------------------------
+                            // Simulamos la llamada segura al LLM con un prompt enriquecido y guardrails
+                            var aiEvaluation = EvaluateWithSimulatedLlmasGuardrailed(record, avgEnergy);
+                            results.Add(aiEvaluation);
+                            continue;
+                        }
+                        else
+                        {
+                            results.Add(new AnomalyResult(
+                                record.Id,
+                                RequiresReview: true,
+                                Reason: $"Consumo anómalo ({record.EnergyKwh} kWh) excede la media histórica de la sede ({avgEnergy:F0} kWh) sin justificación operativa.",
+                                Severity: "High",
+                                EvaluatedBy: "Code-Heuristics"
+                            ));
+                            continue;
+                        }
+                    }
                 }
 
-                // REGLA 3: Relaciones Sospechosas (Desproporción entre Energía y CO₂)
-                // Evaluamos la tasa de emisión (CO2 / kWh). Una tasa extremadamente alta o fuera de rango indica anomalía.
+                // D. Relaciones sospechosas (Desproporción CO2 / kWh)
                 if (record.EnergyKwh > 0)
                 {
                     double emissionRatio = record.Co2Kg / record.EnergyKwh;
+                    double standardIndustrialRatio = 0.35;
 
-                    // Umbral genérico de alerta: si emite más de 0.8 kg de CO2 por cada kWh consumido (ej. valor atípico desproporcionado)
-                    // O si comparamos contra el ratio medio de los demás registros válidos de la misma sede.
-                    double typicalRatio = 0.35; // Ratio base estimado sostenible/industrial estándar aproximado
-
-                    if (emissionRatio > (typicalRatio * 3.0)) // Si la proporción se dispara triplicando lo normal
+                    if (emissionRatio > (standardIndustrialRatio * 3.0))
                     {
                         results.Add(new AnomalyResult(
                             record.Id,
                             RequiresReview: true,
-                            Reason: $"Relación sospechosa: La emisión de CO₂ ({record.Co2Kg} kg) es desproporcionada respecto al consumo energético ({record.EnergyKwh} kWh).",
-                            Severity: "Medium"
+                            Reason: $"Relación sospechosa: Emisión de CO₂ desproporcionada ({record.Co2Kg} kg) para los kWh consumidos.",
+                            Severity: "Medium",
+                            EvaluatedBy: "Code-Heuristics"
                         ));
                         continue;
                     }
                 }
 
-                // Si pasa todas las validaciones, se marca como normal
+                // Si todo es normal
                 results.Add(new AnomalyResult(
                     record.Id,
                     RequiresReview: false,
                     Reason: "Registro normal y coherente.",
-                    Severity: "None"
+                    Severity: "None",
+                    EvaluatedBy: "Code-Heuristics"
                 ));
             }
         }
 
         return results;
+    }
+
+    // Método que simula el Escenario B: LLM con Guardrails (Gobernanza ESG)
+    private AnomalyResult EvaluateWithSimulatedLlmasGuardrailed(EmissionRecord record, double avgEnergy)
+    {
+        // En un entorno real, aquí se armaría el payload JSON estructurado hacia el LLM
+        // incluyendo el histórico, y se forzaría un esquema de respuesta estricto.
+        // Aplicamos Guardrails: Si el modelo alucina o da una respuesta ambigua,
+        // por defecto obligamos a revisión humana (Human-in-the-Loop).
+
+        return new AnomalyResult(
+            record.Id,
+            RequiresReview: true, // Guardrail de seguridad ESG: Ante la duda, revisa un humano
+            Reason: $"[Revisión asistida por LLM] El registro presenta un desvío de consumo, pero requiere validación formal humana antes de integrarse al reporting ESG oficial.",
+            Severity: "Medium",
+            EvaluatedBy: "LLM-Assisted-With-Guardrails"
+        );
     }
 }
