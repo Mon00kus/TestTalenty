@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\buildMultiTargeting\Co2AnomalyDetection.Api.props" />
-</Project>
