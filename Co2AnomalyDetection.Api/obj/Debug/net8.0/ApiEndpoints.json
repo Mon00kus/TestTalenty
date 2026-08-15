@@ -1,7 +1,7 @@
 [
   {
-    "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_2",
+    "ContainingType": "Co2AnomalyDetection.Api.Features.AnalyzeEmissions.AnalyzeEmissionsEndpoint\u002B\u003C\u003Ec",
+    "Method": "\u003CMapAnalyzeEmissionsEndpoint\u003Eb__0_0",
     "RelativePath": "api/emissions/analyze-advanced",
     "HttpMethod": "POST",
     "IsController": false,
@@ -9,7 +9,7 @@
     "Parameters": [
       {
         "Name": "request",
-        "Type": "AnalysisRequest",
+        "Type": "Co2AnomalyDetection.Api.Features.AnalyzeEmissions.AnalysisRequest",
         "IsRequired": true
       }
     ],
@@ -19,6 +19,9 @@
         "MediaTypes": [],
         "StatusCode": 200
       }
+    ],
+    "Tags": [
+      "Emissions ESG Analysis"
     ],
     "EndpointName": "AnalyzeEmissionsAdvanced"
   }

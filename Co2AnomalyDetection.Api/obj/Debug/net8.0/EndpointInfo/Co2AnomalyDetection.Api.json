@@ -8,7 +8,7 @@
     "/api/emissions/analyze-advanced": {
       "post": {
         "tags": [
-          "Co2AnomalyDetection.Api"
+          "Emissions ESG Analysis"
         ],
         "operationId": "AnalyzeEmissionsAdvanced",
         "requestBody": {
