@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Co2AnomalyDetection.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4bbdc0b2d7228076211b56aac4cd9fd39af18cdf")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c36e51f5f16725a109a1d74cbaf70ccf77296071")]
 [assembly: System.Reflection.AssemblyProductAttribute("Co2AnomalyDetection.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Co2AnomalyDetection.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
