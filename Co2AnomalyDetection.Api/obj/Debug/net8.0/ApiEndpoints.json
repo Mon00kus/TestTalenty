@@ -1,15 +1,15 @@
 [
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_1",
-    "RelativePath": "api/emissions/analyze",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_2",
+    "RelativePath": "api/emissions/analyze-advanced",
     "HttpMethod": "POST",
     "IsController": false,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "records",
-        "Type": "System.Collections.Generic.List\u00601[[EmissionRecord, Co2AnomalyDetection.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "Name": "request",
+        "Type": "AnalysisRequest",
         "IsRequired": true
       }
     ],
@@ -20,6 +20,6 @@
         "StatusCode": 200
       }
     ],
-    "EndpointName": "AnalyzeEmissions"
+    "EndpointName": "AnalyzeEmissionsAdvanced"
   }
 ]
