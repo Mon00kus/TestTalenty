@@ -1,12 +1,11 @@
 {
   "Version": 1,
-  "Hash": "XjbNwfRl+2n9m2wGMh/unLxB+sqv1/cgX5x2to4Ehm8=",
+  "Hash": "ECo8qEZ33/KnOxPfS/m8/sKnWlGeLp9NzG6rAnYiAps=",
   "Source": "Co2AnomalyDetection.Api",
   "BasePath": "_content/Co2AnomalyDetection.Api",
   "Mode": "Default",
   "ManifestType": "Build",
   "ReferencedProjectsConfiguration": [],
   "DiscoveryPatterns": [],
-  "Assets": [],
-  "Endpoints": []
+  "Assets": []
 }
