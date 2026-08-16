@@ -31,3 +31,122 @@ Este repositorio contiene la API desarrollada en .NET para el análisis y detecc
 4. Haz clic en el botón Iniciar (o presiona la tecla F5 para depurar, o Ctrl + F5 para ejecutar sin depurar).
 
 5. Visual Studio compilará el proyecto y abrirá automáticamente tu navegador predeterminado mostrando la interfaz de Swagger configurada en /swagger.
+
+## Jsons usados
+{
+  "records": [
+    { "id": 4, "site": "Madrid", "month": "2026-05", "energyKwh": 25000, "co2Kg": 5900 }
+  ],
+  "operationalContexts": [
+    {
+      "site": "Madrid",
+      "month": "2026-05",
+      "reason": "Ampliación de fábrica y nueva línea de producción en curso",
+      "expectedEnergyMultiplier": 2.5
+    }
+  ],
+  "enableAiAssistance": true
+}
+
+__________________________________________
+
+{
+  "records": [
+    { "id": 1, "site": "Madrid", "month": "2026-01", "energyKwh": 12000, "co2Kg": 2800 },
+    { "id": 2, "site": "Madrid", "month": "2026-02", "energyKwh": 12500, "co2Kg": 2900 },
+    { "id": 3, "site": "Madrid", "month": "2026-03", "energyKwh": 12800, "co2Kg": 2950 },
+    { "id": 4, "site": "Madrid", "month": "2026-04", "energyKwh": 79000, "co2Kg": 18200 },
+    { "id": 7, "site": "Barcelona", "month": "2026-03", "energyKwh": -900, "co2Kg": -210 },
+    { "id": 8, "site": "Barcelona", "month": "2026-04", "energyKwh": 8900, "co2Kg": 8500 }
+  ],
+  "operationalContexts": [],
+  "enableAiAssistance": false
+}
+
+__________________________________________
+
+Aquí tienes un ejemplo de JSON exacto que cumplirá con estas condiciones y forzará la llamada simulada al LLM:
+
+JSON
+{
+  "records": [
+    {
+      "id": 1,
+      "site": "Barcelona",
+      "month": "2026-01",
+      "energyKwh": 10000,
+      "co2Kg": 2500
+    },
+    {
+      "id": 2,
+      "site": "Barcelona",
+      "month": "2026-02",
+      "energyKwh": 11000,
+      "co2Kg": 2700
+    },
+    {
+      "id": 3,
+      "site": "Barcelona",
+      "month": "2026-03",
+      "energyKwh": 50000,
+      "co2Kg": 12000
+    }
+  ],
+  "operationalContexts": [],
+  "enableAiAssistance": true
+}
+__________________________________________
+
+{
+  "records": [
+    {
+      "id": 1,
+      "site": "Madrid",
+      "month": "2026-01",
+      "energyKwh": 12000,
+      "co2Kg": 2800
+    },
+    {
+      "id": 4,
+      "site": "Madrid",
+      "month": "2026-05",
+      "energyKwh": 75000,
+      "co2Kg": 19000
+    }
+  ],
+  "operationalContexts": [
+    {
+      "site": "Madrid",
+      "month": "2026-05",
+      "reason": "Ampliación de fábrica y nueva línea de producción",
+      "expectedEnergyMultiplier": 3.0
+    }
+  ],
+  "enableAiAssistance": false
+}
+
+__________________________________________
+
+{
+  "records": [
+    { "id": 1, "site": "Madrid", "month": "2026-01", "energyKwh": 12000, "co2Kg": 2800 },
+    { "id": 2, "site": "Madrid", "month": "2026-02", "energyKwh": 12500, "co2Kg": 2900 }
+  ],
+  "operationalContexts": [],
+  "enableAiAssistance": false
+}
+
+__________________________________________
+
+{
+  "records": [
+    { "id": 1, "site": "Madrid", "month": "2026-01", "energyKwh": 12000, "co2Kg": 2800 },
+    { "id": 2, "site": "Madrid", "month": "2026-02", "energyKwh": 12500, "co2Kg": 2900 },
+    { "id": 3, "site": "Madrid", "month": "2026-03", "energyKwh": 12800, "co2Kg": 2950 },
+    { "id": 4, "site": "Madrid", "month": "2026-04", "energyKwh": 79000, "co2Kg": 18200 },
+    { "id": 7, "site": "Barcelona", "month": "2026-03", "energyKwh": -900, "co2Kg": -210 },
+    { "id": 8, "site": "Barcelona", "month": "2026-04", "energyKwh": 8900, "co2Kg": 8500 }
+  ],
+  "operationalContexts": [],
+  "enableAiAssistance": false
+}
